@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "auth.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "auth.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "auth.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+
+
+
