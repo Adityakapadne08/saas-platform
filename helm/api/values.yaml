@@ -1,0 +1,40 @@
+replicaCount: 1
+
+image:
+  repository: saas-api
+  tag: "v1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8002
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8002
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8002
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+namespace: default
+
+tenant: default
+
+serviceAccount:
+  create: true
+  name: ""

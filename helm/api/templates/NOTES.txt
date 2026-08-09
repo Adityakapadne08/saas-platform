@@ -1,0 +1,18 @@
+Auth Service has been deployed successfully!
+
+Release:   {{ .Release.Name }}
+Namespace: {{ .Values.namespace }}
+Tenant:    {{ .Values.tenant }}
+Image:     {{ .Values.image.repository }}:{{ .Values.image.tag }}
+
+To test locally via port-forward:
+  kubectl port-forward svc/{{ include "api.fullname" . }} 8001:{{ .Values.service.port }} -n {{ .Values.namespace }}
+
+Then:
+  curl http://localhost:8001/health
+
+
+
+
+
+
