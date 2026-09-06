@@ -11,7 +11,7 @@ ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 30
 
 # --- App ---
-app = FastAPI(title="Auth Service", version="1.0.0")
+app = FastAPI(title="Auth Service", version="1.1.0")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer()
 
