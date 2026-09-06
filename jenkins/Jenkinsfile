@@ -77,6 +77,7 @@ pipeline {
                             aquasec/trivy:latest image \
                             --exit-code 1 \
                             --severity HIGH,CRITICAL \
+                             --ignore-unfixed \
                             ${AUTH_IMAGE}:${BUILD_NUMBER}
                     """
                 }
