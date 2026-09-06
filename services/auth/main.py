@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-
+# Auth Service v2
 # --- Config ---
 SECRET_KEY = "change-this-in-production-use-secrets-manager"
 ALGORITHM = "HS256"
