@@ -121,17 +121,24 @@ pipeline {
             }
         }
 
-               stage('Commit & Push') {
+                      stage('Commit & Push') {
             steps {
                 script {
-                    sh """
-                        git config user.email "jenkins@saas-platform.com"
-                        git config user.name "Jenkins CI"
-                        git checkout main
-                        git add helm/
-                        git diff --staged --quiet || git commit -m "ci: update image tags to build ${BUILD_NUMBER}"
-                        git push origin main
-                    """
+                    withCredentials([usernamePassword(
+                        credentialsId: 'github-creds-2',
+                        usernameVariable: 'GIT_USER',
+                        passwordVariable: 'GIT_TOKEN'
+                    )]) {
+                        sh """
+                            git config user.email "jenkins@saas-platform.com"
+                            git config user.name "Jenkins CI"
+                            git checkout main
+                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@github.com/Adityakapadne08/saas-platform.git
+                            git add helm/
+                            git diff --staged --quiet || git commit -m "ci: update image tags to build ${BUILD_NUMBER}"
+                            git push origin main
+                        """
+                    }
                 }
             }
         }
