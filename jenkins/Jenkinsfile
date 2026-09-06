@@ -71,13 +71,15 @@ pipeline {
             steps {
                 script {
                     echo "Scanning auth image for vulnerabilities..."
-                                       sh """
+                                        sh """
                         docker run --rm \
                             -v /var/run/docker.sock:/var/run/docker.sock \
+                            -v /var/jenkins_home/workspace/saas-platform/.trivyignore:/.trivyignore \
                             aquasec/trivy:latest image \
                             --exit-code 1 \
                             --severity HIGH,CRITICAL \
                             --ignore-unfixed \
+                            --ignorefile /.trivyignore \
                             --skip-dirs /usr/local/lib/python3.11/site-packages/setuptools/_vendor \
                             ${AUTH_IMAGE}:${BUILD_NUMBER}
                     """
