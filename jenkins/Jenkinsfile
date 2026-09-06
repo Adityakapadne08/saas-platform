@@ -1,0 +1,147 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REGISTRY = 'docker.io'
+        AUTH_IMAGE      = 'saas-auth'
+        API_IMAGE       = 'saas-api'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Detect Changes') {
+            steps {
+                script {
+                    def changedFiles = sh(
+                        script: 'git diff --name-only HEAD~1 HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Changed files:\n${changedFiles}"
+
+                    env.BUILD_AUTH = changedFiles.contains('services/auth') ? 'true' : 'false'
+                    env.BUILD_API  = changedFiles.contains('services/api')  ? 'true' : 'false'
+
+                    echo "Build auth: ${env.BUILD_AUTH}"
+                    echo "Build api:  ${env.BUILD_API}"
+                }
+            }
+        }
+
+        stage('Build Auth Image') {
+            when {
+                expression { env.BUILD_AUTH == 'true' }
+            }
+            steps {
+                script {
+                    echo "Building auth service image..."
+                    sh """
+                        docker build -t ${AUTH_IMAGE}:${BUILD_NUMBER} services/auth
+                        docker tag ${AUTH_IMAGE}:${BUILD_NUMBER} ${AUTH_IMAGE}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Build API Image') {
+            when {
+                expression { env.BUILD_API == 'true' }
+            }
+            steps {
+                script {
+                    echo "Building api service image..."
+                    sh """
+                        docker build -t ${API_IMAGE}:${BUILD_NUMBER} services/api
+                        docker tag ${API_IMAGE}:${BUILD_NUMBER} ${API_IMAGE}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Scan Auth Image') {
+            when {
+                expression { env.BUILD_AUTH == 'true' }
+            }
+            steps {
+                script {
+                    echo "Scanning auth image for vulnerabilities..."
+                    sh """
+                        docker run --rm \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            aquasec/trivy:latest image \
+                            --exit-code 1 \
+                            --severity HIGH,CRITICAL \
+                            ${AUTH_IMAGE}:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+
+        stage('Scan API Image') {
+            when {
+                expression { env.BUILD_API == 'true' }
+            }
+            steps {
+                script {
+                    echo "Scanning api image for vulnerabilities..."
+                    sh """
+                        docker run --rm \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            aquasec/trivy:latest image \
+                            --exit-code 1 \
+                            --severity HIGH,CRITICAL \
+                            ${API_IMAGE}:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+
+        stage('Update Helm Values') {
+            steps {
+                script {
+                    if (env.BUILD_AUTH == 'true') {
+                        sh """
+                            sed -i 's/tag: .*/tag: "${BUILD_NUMBER}"/' helm/auth/values.yaml
+                        """
+                        echo "Updated auth helm values with tag: ${BUILD_NUMBER}"
+                    }
+                    if (env.BUILD_API == 'true') {
+                        sh """
+                            sed -i 's/tag: .*/tag: "${BUILD_NUMBER}"/' helm/api/values.yaml
+                        """
+                        echo "Updated api helm values with tag: ${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+
+        stage('Commit & Push') {
+            steps {
+                script {
+                    sh """
+                        git config user.email "jenkins@saas-platform.com"
+                        git config user.name "Jenkins CI"
+                        git add helm/
+                        git diff --staged --quiet || git commit -m "ci: update image tags to build ${BUILD_NUMBER}"
+                        git push origin main
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully. Build: ${BUILD_NUMBER}"
+        }
+        failure {
+            echo "Pipeline failed. Check logs above."
+        }
+    }
+}
