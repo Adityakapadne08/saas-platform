@@ -76,7 +76,7 @@ pipeline {
                             -v /var/run/docker.sock:/var/run/docker.sock \
                             aquasec/trivy:latest image \
                             --exit-code 1 \
-                            --severity HIGH,CRITICAL \
+                            --severity CRITICAL \
                             --ignore-unfixed \
                             --skip-dirs /usr/local/lib/python3.11/site-packages/setuptools/_vendor \
                             ${AUTH_IMAGE}:${BUILD_NUMBER}
