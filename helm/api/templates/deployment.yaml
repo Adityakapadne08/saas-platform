@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         {{- include "api.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: {{ include "api.serviceAccountName" . }}
       securityContext:

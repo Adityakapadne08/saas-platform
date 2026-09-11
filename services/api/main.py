@@ -4,17 +4,19 @@ from pydantic import BaseModel
 from jose import JWTError, jwt
 from typing import Optional
 import os
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # --- Config ---
 SECRET_KEY = "change-this-in-production-use-secrets-manager"
 ALGORITHM = "HS256"
 
 # --- App ---
+
 app = FastAPI(title="API Service", version="1.0.0")
 bearer_scheme = HTTPBearer()
-
-# --- In-memory resource store ---
 resources_db = {}
+
+Instrumentator().instrument(app).expose(app)
 
 # --- Models ---
 class ResourceCreate(BaseModel):

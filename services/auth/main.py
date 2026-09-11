@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from prometheus_fastapi_instrumentator import Instrumentator
 # Auth Service v2
 # --- Config ---
 SECRET_KEY = "change-this-in-production-use-secrets-manager"
@@ -14,6 +15,8 @@ TOKEN_EXPIRE_MINUTES = 30
 app = FastAPI(title="Auth Service", version="1.1.0")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer()
+
+Instrumentator().instrument(app).expose(app)
 
 # --- In-memory user store (DB in real world) ---
 fake_users_db = {}
