@@ -15,30 +15,33 @@ pipeline {
             }
         }
 
-      stage('Detect Changes') {
-    steps {
-        script {
-            // Find the last commit NOT authored by Jenkins CI — i.e. the last real code push
-            def lastRealCommit = sh(
-                script: "git log --format='%H %an' | grep -v 'Jenkins CI' | head -1 | cut -d' ' -f1",
-                returnStdout: true
-            ).trim()
+        stage('Detect Changes') {
+            steps {
+                script {
+                    // Diff against the SHA that was last successfully built.
+                    // If no such tag exists yet (first run after this change),
+                    // fall back to the repo's very first commit so nothing is missed.
+                    def lastBuiltSha = sh(
+                        script: "git rev-parse last-built-sha 2>/dev/null || git rev-list --max-parents=0 HEAD",
+                        returnStdout: true
+                    ).trim()
 
-            def changedFiles = sh(
-                script: "git diff --name-only ${lastRealCommit}~1 HEAD",
-                returnStdout: true
-            ).trim()
+                    def changedFiles = sh(
+                        script: "git diff --name-only ${lastBuiltSha} HEAD",
+                        returnStdout: true
+                    ).trim()
 
-            echo "Changed files:\n${changedFiles}"
+                    echo "Diffing from: ${lastBuiltSha}"
+                    echo "Changed files:\n${changedFiles}"
 
-            env.BUILD_AUTH = changedFiles.contains('services/auth') ? 'true' : 'false'
-            env.BUILD_API  = changedFiles.contains('services/api')  ? 'true' : 'false'
+                    env.BUILD_AUTH = changedFiles.contains('services/auth') ? 'true' : 'false'
+                    env.BUILD_API  = changedFiles.contains('services/api')  ? 'true' : 'false'
 
-            echo "Build auth: ${env.BUILD_AUTH}"
-            echo "Build api:  ${env.BUILD_API}"
+                    echo "Build auth: ${env.BUILD_AUTH}"
+                    echo "Build api:  ${env.BUILD_API}"
+                }
+            }
         }
-    }
-}
 
         stage('Build Auth Image') {
             when {
@@ -157,6 +160,18 @@ pipeline {
 
     post {
         success {
+            script {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-creds-2',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh """
+                        git tag -f last-built-sha HEAD
+                        git push https://\${GIT_USER}:\${GIT_TOKEN}@github.com/Adityakapadne08/saas-platform.git last-built-sha --force
+                    """
+                }
+            }
             echo "Pipeline completed successfully. Build: ${BUILD_NUMBER}"
         }
         failure {
