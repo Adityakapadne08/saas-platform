@@ -21,10 +21,17 @@ pipeline {
                     // Diff against the SHA that was last successfully built.
                     // If no such tag exists yet (first run after this change),
                     // fall back to the repo's very first commit so nothing is missed.
-                    def lastBuiltSha = sh(
-                        script: "git rev-parse last-built-sha 2>/dev/null || git rev-list --max-parents=0 HEAD",
-                        returnStdout: true
-                    ).trim()
+                    // NOTE: we check existence explicitly first — `git rev-parse <bad-ref>`
+                    // can echo the literal argument to stdout before failing, which
+                    // silently corrupts a `||`-chained one-liner.
+                    def tagExists = sh(
+                        script: "git rev-parse --verify --quiet refs/tags/last-built-sha",
+                        returnStatus: true
+                    ) == 0
+
+                    def lastBuiltSha = tagExists
+                        ? sh(script: "git rev-parse refs/tags/last-built-sha", returnStdout: true).trim()
+                        : sh(script: "git rev-list --max-parents=0 HEAD", returnStdout: true).trim()
 
                     def changedFiles = sh(
                         script: "git diff --name-only ${lastBuiltSha} HEAD",
