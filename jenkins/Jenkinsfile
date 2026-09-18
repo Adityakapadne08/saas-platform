@@ -15,24 +15,30 @@ pipeline {
             }
         }
 
-        stage('Detect Changes') {
-            steps {
-                script {
-                    def changedFiles = sh(
-                        script: 'git diff --name-only HEAD~1 HEAD',
-                        returnStdout: true
-                    ).trim()
+      stage('Detect Changes') {
+    steps {
+        script {
+            // Find the last commit NOT authored by Jenkins CI — i.e. the last real code push
+            def lastRealCommit = sh(
+                script: "git log --format='%H %an' | grep -v 'Jenkins CI' | head -1 | cut -d' ' -f1",
+                returnStdout: true
+            ).trim()
 
-                    echo "Changed files:\n${changedFiles}"
+            def changedFiles = sh(
+                script: "git diff --name-only ${lastRealCommit}~1 HEAD",
+                returnStdout: true
+            ).trim()
 
-                    env.BUILD_AUTH = changedFiles.contains('services/auth') ? 'true' : 'false'
-                    env.BUILD_API  = changedFiles.contains('services/api')  ? 'true' : 'false'
+            echo "Changed files:\n${changedFiles}"
 
-                    echo "Build auth: ${env.BUILD_AUTH}"
-                    echo "Build api:  ${env.BUILD_API}"
-                }
-            }
+            env.BUILD_AUTH = changedFiles.contains('services/auth') ? 'true' : 'false'
+            env.BUILD_API  = changedFiles.contains('services/api')  ? 'true' : 'false'
+
+            echo "Build auth: ${env.BUILD_AUTH}"
+            echo "Build api:  ${env.BUILD_API}"
         }
+    }
+}
 
         stage('Build Auth Image') {
             when {
