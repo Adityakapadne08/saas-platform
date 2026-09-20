@@ -152,7 +152,7 @@ pipeline {
                         sh """
                             git config user.email "jenkins@saas-platform.com"
                             git config user.name "Jenkins CI"
-                            git checkout main
+                            git checkout -B main origin/main
                             git remote set-url origin https://\${GIT_USER}:\${GIT_TOKEN}@github.com/Adityakapadne08/saas-platform.git
                             git pull origin main
                             git add helm/
