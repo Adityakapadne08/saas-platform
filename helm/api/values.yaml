@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: saas-api
-  tag: "26"
+  tag: "37"
   pullPolicy: IfNotPresent
 
 service:
