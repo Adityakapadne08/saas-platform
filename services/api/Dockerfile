@@ -11,6 +11,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Stage 2 — Production stage
 FROM python:3.11-slim AS production
 
+# Patch OS packages to pick up security fixes not yet baked into the
+# upstream python:3.11-slim snapshot (fixes CVE-2026-13221, CVE-2026-42496,
+# CVE-2026-8376 in perl-base and similar). Must run as root, before USER switch.
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
 WORKDIR /app
