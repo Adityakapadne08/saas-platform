@@ -5,8 +5,8 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --default-timeout=120 --retries=8 --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir --default-timeout=120 --retries=8 -r requirements.txt
 
 # Stage 2 — Production stage
 FROM python:3.11-slim AS production
